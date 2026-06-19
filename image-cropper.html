@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이미지 비율 자르기 앱</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    header {
+      padding: 34px 20px;
+      text-align: center;
+      color: white;
+      background: linear-gradient(135deg, #0f766e, #065f46);
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 15px;
+      opacity: 0.94;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 28px auto;
+      padding: 0 18px 42px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .upload-area {
+      border: 2px dashed #5eead4;
+      background: #f0fdfa;
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      transition: 0.2s;
+    }
+
+    .upload-area.dragover {
+      background: #ccfbf1;
+      border-color: #0f766e;
+    }
+
+    .upload-area h2 {
+      margin: 0 0 10px;
+      color: #115e59;
+      font-size: 22px;
+    }
+
+    .upload-area p {
+      margin: 7px 0;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-label {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 12px 18px;
+      background: #0f766e;
+      color: white;
+      border-radius: 999px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .file-label:hover {
+      background: #115e59;
+      transform: translateY(-1px);
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 14px;
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .status.error {
+      color: #b91c1c;
+      font-weight: 800;
+    }
+
+    .status.success {
+      color: #15803d;
+      font-weight: 800;
+    }
+
+    .guide {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .guide-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .guide-item strong {
+      display: block;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1.55fr 0.9fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .canvas-wrap {
+      width: 100%;
+      min-height: 500px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+    }
+
+    .empty-message {
+      color: #64748b;
+      text-align: center;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    canvas {
+      max-width: 100%;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.13);
+      touch-action: none;
+    }
+
+    .control-title {
+      margin: 0 0 14px;
+      font-size: 22px;
+      color: #111827;
+    }
+
+    .control-section {
+      margin-bottom: 20px;
+    }
+
+    .control-section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #334155;
+    }
+
+    .ratio-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-ratio {
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .btn-ratio:hover {
+      background: #dcfce7;
+    }
+
+    .btn-ratio.active {
+      background: #0f766e;
+      color: white;
+      border-color: #0f766e;
+    }
+
+    .tool-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .btn-light {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-light:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    .btn-download {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      font-size: 15px;
+      padding: 13px 14px;
+    }
+
+    .btn-download:hover {
+      background: #1d4ed8;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 11px 12px;
+      background: white;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .file-info {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 13px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .file-info strong {
+      color: #0f172a;
+    }
+
+    .help-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #854d0e;
+      border-radius: 14px;
+      padding: 13px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .preview-box {
+      margin-top: 10px;
+      min-height: 150px;
+      border: 1px dashed #cbd5e1;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .preview-box img {
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .guide {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-wrap {
+        min-height: 360px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      header h1 {
+        font-size: 25px;
+      }
+
+      .ratio-grid,
+      .tool-row {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>이미지 비율 자르기 앱</h1>
+    <p>JPG, PNG, WEBP 이미지를 원하는 비율로 자르고 새 이미지로 다운로드하세요.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div id="uploadArea" class="upload-area">
+        <h2>이미지 파일 업로드</h2>
+        <p>JPG, PNG, WEBP 형식의 이미지를 선택할 수 있습니다.</p>
+        <p>이 버전은 외부 라이브러리 없이 작동합니다. 인터넷 연결이 없어도 됩니다.</p>
+
+        <label for="imageInput" class="file-label">이미지 파일 선택하기</label>
+        <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+      </div>
+
+      <div id="status" class="status">이미지를 선택하면 편집 화면이 표시됩니다.</div>
+
+      <div class="guide">
+        <div class="guide-item">
+          <strong>1단계</strong>
+          이미지 파일을 업로드합니다.
+        </div>
+        <div class="guide-item">
+          <strong>2단계</strong>
+          원하는 자르기 비율을 선택합니다.
+        </div>
+        <div class="guide-item">
+          <strong>3단계</strong>
+          자르기 박스를 드래그하거나 모서리를 잡아 조절합니다.
+        </div>
+        <div class="guide-item">
+          <strong>4단계</strong>
+          미리보기 후 다운로드합니다.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="workspace">
+        <div class="canvas-wrap" id="canvasWrap">
+          <div id="emptyMessage" class="empty-message">
+            아직 업로드된 이미지가 없습니다.<br />
+            위의 <strong>이미지 파일 선택하기</strong> 버튼을 눌러 시작하세요.
+          </div>
+          <canvas id="editorCanvas" style="display:none;"></canvas>
+        </div>
+
+        <aside>
+          <h2 class="control-title">자르기 설정</h2>
+
+          <div class="control-section">
+            <h3>파일 정보</h3>
+            <div id="fileInfo" class="file-info">
+              <strong>선택된 파일:</strong> 없음
+            </div>
+          </div>
+
+          <div class="control-section">
+            <h3>가로세로 비율 선택</h3>
+            <div class="ratio-grid">
+              <button type="button" class="btn-ratio" data-ratio="1">1:1 정사각형</button>
+              <button type="button" class="btn-ratio" data-ratio="1.3333333333333333">4:3 가로형</button>
+              <button type="button" class="btn-ratio" data-ratio="1.7777777777777777">16:9 와이드</button>
+              <button type="button" class="btn-ratio" data-ratio="0.75">3:4 세로형</button>
+              <button type="button" class="btn-ratio" data-ratio="0.5625">9:16 세로형</button>
+              <button type="button" class="btn-ratio active" data-ratio="free">자유 비율</button>
+            </div>
+          </div>
+
+          <div class="control-section">
+            <h3>편집 도구</h3>
+            <div class="tool-row">
+              <button type="button" id="centerBtn" class="btn-light">가운데 맞춤</button>
+              <button type="button" id="maxBtn" class="btn-light">최대 크기</button>
+              <button type="button" id="resetBtn" class="btn-light">원래대로</button>
+              <button type="button" id="clearBtn" class="btn-danger">초기화</button>
+            </div>
+          </div>
+
+          <div class="control-section">
+            <h3>다운로드 형식</h3>
+            <select id="outputType">
+              <option value="image/png">PNG로 다운로드</option>
+              <option value="image/jpeg">JPG로 다운로드</option>
+            </select>
+          </div>
+
+          <div class="control-section">
+            <div class="help-box">
+              <strong>사용법</strong><br />
+              자르기 박스 안쪽을 잡고 움직이면 위치가 바뀝니다.<br />
+              네 모서리의 작은 사각형을 잡으면 크기가 바뀝니다.
+            </div>
+          </div>
+
+          <div class="control-section">
+            <h3>자른 이미지 미리보기</h3>
+            <button type="button" id="previewBtn" class="btn-light" style="width:100%;">미리보기 만들기</button>
+            <div id="previewBox" class="preview-box">
+              미리보기 버튼을 누르면 자른 이미지가 표시됩니다.
+            </div>
+          </div>
+
+          <button type="button" id="downloadBtn" class="btn-download">
+            자른 이미지 다운로드
+          </button>
+        </aside>
+      </div>
+    </section>
+
+    <footer>
+      단일 HTML 파일로 작동하는 이미지 자르기 앱
+    </footer>
+  </main>
+
+  <script>
+    const imageInput = document.getElementById("imageInput");
+    const uploadArea = document.getElementById("uploadArea");
+    const canvas = document.getElementById("editorCanvas");
+    const ctx = canvas.getContext("2d");
+    const emptyMessage = document.getElementById("emptyMessage");
+    const statusBox = document.getElementById("status");
+    const fileInfo = document.getElementById("fileInfo");
+    const outputType = document.getElementById("outputType");
+    const previewBox = document.getElementById("previewBox");
+
+    const ratioButtons = document.querySelectorAll(".btn-ratio");
+    const centerBtn = document.getElementById("centerBtn");
+    const maxBtn = document.getElementById("maxBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const previewBtn = document.getElementById("previewBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let image = null;
+    let imageNaturalWidth = 0;
+    let imageNaturalHeight = 0;
+    let displayScale = 1;
+    let currentFileName = "cropped-image";
+    let activeRatio = "free";
+
+    let crop = {
+      x: 50,
+      y: 50,
+      w: 200,
+      h: 200
+    };
+
+    let dragMode = null;
+    let dragStart = {
+      x: 0,
+      y: 0,
+      cropX: 0,
+      cropY: 0,
+      cropW: 0,
+      cropH: 0
+    };
+
+    function setStatus(message, type) {
+      statusBox.textContent = message;
+      statusBox.className = "status";
+
+      if (type === "error") {
+        statusBox.classList.add("error");
+      }
+
+      if (type === "success") {
+        statusBox.classList.add("success");
+      }
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function removeExtension(fileName) {
+      return fileName.replace(/\.[^/.]+$/, "");
+    }
+
+    function isValidImageFile(file) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      const lowerName = file.name.toLowerCase();
+
+      return (
+        allowedTypes.includes(file.type) ||
+        lowerName.endsWith(".jpg") ||
+        lowerName.endsWith(".jpeg") ||
+        lowerName.endsWith(".png") ||
+        lowerName.endsWith(".webp")
+      );
+    }
+
+    function setButtonsDisabled(disabled) {
+      const buttons = [
+        centerBtn,
+        maxBtn,
+        resetBtn,
+        previewBtn,
+        downloadBtn
+      ];
+
+      buttons.forEach(function (button) {
+        button.disabled = disabled;
+      });
+
+      ratioButtons.forEach(function (button) {
+        button.disabled = disabled;
+      });
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getNumericRatio() {
+      if (activeRatio === "free") {
+        return null;
+      }
+
+      return Number(activeRatio);
+    }
+
+    function fitCanvasToImage() {
+      const maxCanvasWidth = 820;
+      const maxCanvasHeight = 640;
+
+      const scaleX = maxCanvasWidth / imageNaturalWidth;
+      const scaleY = maxCanvasHeight / imageNaturalHeight;
+
+      displayScale = Math.min(1, scaleX, scaleY);
+
+      canvas.width = Math.round(imageNaturalWidth * displayScale);
+      canvas.height = Math.round(imageNaturalHeight * displayScale);
+    }
+
+    function setMaxCropForCurrentRatio() {
+      const ratio = getNumericRatio();
+
+      if (!ratio) {
+        const marginX = canvas.width * 0.08;
+        const marginY = canvas.height * 0.08;
+        crop.x = marginX;
+        crop.y = marginY;
+        crop.w = canvas.width - marginX * 2;
+        crop.h = canvas.height - marginY * 2;
+        return;
+      }
+
+      let w = canvas.width * 0.86;
+      let h = w / ratio;
+
+      if (h > canvas.height * 0.86) {
+        h = canvas.height * 0.86;
+        w = h * ratio;
+      }
+
+      crop.w = w;
+      crop.h = h;
+      crop.x = (canvas.width - w) / 2;
+      crop.y = (canvas.height - h) / 2;
+    }
+
+    function centerCrop() {
+      crop.x = (canvas.width - crop.w) / 2;
+      crop.y = (canvas.height - crop.h) / 2;
+      keepCropInsideCanvas();
+      draw();
+    }
+
+    function keepCropInsideCanvas() {
+      const minSize = 30;
+
+      crop.w = clamp(crop.w, minSize, canvas.width);
+      crop.h = clamp(crop.h, minSize, canvas.height);
+
+      const ratio = getNumericRatio();
+      if (ratio) {
+        crop.h = crop.w / ratio;
+
+        if (crop.h > canvas.height) {
+          crop.h = canvas.height;
+          crop.w = crop.h * ratio;
+        }
+
+        if (crop.w > canvas.width) {
+          crop.w = canvas.width;
+          crop.h = crop.w / ratio;
+        }
+      }
+
+      crop.x = clamp(crop.x, 0, canvas.width - crop.w);
+      crop.y = clamp(crop.y, 0, canvas.height - crop.h);
+    }
+
+    function draw() {
+      if (!image) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(crop.x, crop.y, crop.w, crop.h);
+      ctx.drawImage(
+        image,
+        crop.x / displayScale,
+        crop.y / displayScale,
+        crop.w / displayScale,
+        crop.h / displayScale,
+        crop.x,
+        crop.y,
+        crop.w,
+        crop.h
+      );
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(crop.x, crop.y, crop.w, crop.h);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1;
+
+      const thirdW = crop.w / 3;
+      const thirdH = crop.h / 3;
+
+      ctx.beginPath();
+      ctx.moveTo(crop.x + thirdW, crop.y);
+      ctx.lineTo(crop.x + thirdW, crop.y + crop.h);
+      ctx.moveTo(crop.x + thirdW * 2, crop.y);
+      ctx.lineTo(crop.x + thirdW * 2, crop.y + crop.h);
+      ctx.moveTo(crop.x, crop.y + thirdH);
+      ctx.lineTo(crop.x + crop.w, crop.y + thirdH);
+      ctx.moveTo(crop.x, crop.y + thirdH * 2);
+      ctx.lineTo(crop.x + crop.w, crop.y + thirdH * 2);
+      ctx.stroke();
+
+      drawHandle(crop.x, crop.y);
+      drawHandle(crop.x + crop.w, crop.y);
+      drawHandle(crop.x, crop.y + crop.h);
+      drawHandle(crop.x + crop.w, crop.y + crop.h);
+
+      ctx.restore();
+    }
+
+    function drawHandle(x, y) {
+      const size = 12;
+      ctx.fillStyle = "#0f766e";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.fillRect(x - size / 2, y - size / 2, size, size);
+      ctx.strokeRect(x - size / 2, y - size / 2, size, size);
+    }
+
+    function getPointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function getHandleAtPoint(x, y) {
+      const size = 18;
+
+      const handles = [
+        { name: "nw", x: crop.x, y: crop.y },
+        { name: "ne", x: crop.x + crop.w, y: crop.y },
+        { name: "sw", x: crop.x, y: crop.y + crop.h },
+        { name: "se", x: crop.x + crop.w, y: crop.y + crop.h }
+      ];
+
+      for (const handle of handles) {
+        if (Math.abs(x - handle.x) <= size && Math.abs(y - handle.y) <= size) {
+          return handle.name;
+        }
+      }
+
+      if (
+        x >= crop.x &&
+        x <= crop.x + crop.w &&
+        y >= crop.y &&
+        y <= crop.y + crop.h
+      ) {
+        return "move";
+      }
+
+      return null;
+    }
+
+    function startDrag(event) {
+      if (!image) return;
+
+      event.preventDefault();
+
+      const pos = getPointerPosition(event);
+      const mode = getHandleAtPoint(pos.x, pos.y);
+
+      if (!mode) return;
+
+      dragMode = mode;
+      dragStart = {
+        x: pos.x,
+        y: pos.y,
+        cropX: crop.x,
+        cropY: crop.y,
+        cropW: crop.w,
+        cropH: crop.h
+      };
+    }
+
+    function moveDrag(event) {
+      if (!dragMode || !image) return;
+
+      event.preventDefault();
+
+      const pos = getPointerPosition(event);
+      const dx = pos.x - dragStart.x;
+      const dy = pos.y - dragStart.y;
+      const ratio = getNumericRatio();
+      const minSize = 30;
+
+      if (dragMode === "move") {
+        crop.x = dragStart.cropX + dx;
+        crop.y = dragStart.cropY + dy;
+      } else if (!ratio) {
+        if (dragMode === "se") {
+          crop.w = dragStart.cropW + dx;
+          crop.h = dragStart.cropH + dy;
+        }
+
+        if (dragMode === "sw") {
+          crop.x = dragStart.cropX + dx;
+          crop.w = dragStart.cropW - dx;
+          crop.h = dragStart.cropH + dy;
+        }
+
+        if (dragMode === "ne") {
+          crop.y = dragStart.cropY + dy;
+          crop.w = dragStart.cropW + dx;
+          crop.h = dragStart.cropH - dy;
+        }
+
+        if (dragMode === "nw") {
+          crop.x = dragStart.cropX + dx;
+          crop.y = dragStart.cropY + dy;
+          crop.w = dragStart.cropW - dx;
+          crop.h = dragStart.cropH - dy;
+        }
+
+        if (crop.w < minSize) crop.w = minSize;
+        if (crop.h < minSize) crop.h = minSize;
+      } else {
+        let newW = dragStart.cropW;
+
+        if (dragMode === "se" || dragMode === "ne") {
+          newW = dragStart.cropW + dx;
+        } else {
+          newW = dragStart.cropW - dx;
+        }
+
+        newW = Math.max(minSize, newW);
+        let newH = newW / ratio;
+
+        if (newH < minSize) {
+          newH = minSize;
+          newW = newH * ratio;
+        }
+
+        if (dragMode === "se") {
+          crop.w = newW;
+          crop.h = newH;
+        }
+
+        if (dragMode === "ne") {
+          crop.w = newW;
+          crop.h = newH;
+          crop.y = dragStart.cropY + dragStart.cropH - newH;
+        }
+
+        if (dragMode === "sw") {
+          crop.w = newW;
+          crop.h = newH;
+          crop.x = dragStart.cropX + dragStart.cropW - newW;
+        }
+
+        if (dragMode === "nw") {
+          crop.w = newW;
+          crop.h = newH;
+          crop.x = dragStart.cropX + dragStart.cropW - newW;
+          crop.y = dragStart.cropY + dragStart.cropH - newH;
+        }
+      }
+
+      keepCropInsideCanvas();
+      draw();
+    }
+
+    function endDrag() {
+      dragMode = null;
+    }
+
+    function updateCursor(event) {
+      if (!image || dragMode) return;
+
+      const pos = getPointerPosition(event);
+      const mode = getHandleAtPoint(pos.x, pos.y);
+
+      if (mode === "move") {
+        canvas.style.cursor = "move";
+      } else if (mode === "nw" || mode === "se") {
+        canvas.style.cursor = "nwse-resize";
+      } else if (mode === "ne" || mode === "sw") {
+        canvas.style.cursor = "nesw-resize";
+      } else {
+        canvas.style.cursor = "default";
+      }
+    }
+
+    function loadImageFile(file) {
+      if (!file) return;
+
+      if (!isValidImageFile(file)) {
+        setStatus("JPG, PNG, WEBP 형식의 이미지 파일만 업로드할 수 있습니다.", "error");
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        const newImage = new Image();
+
+        newImage.onload = function () {
+          image = newImage;
+          imageNaturalWidth = newImage.naturalWidth;
+          imageNaturalHeight = newImage.naturalHeight;
+          currentFileName = removeExtension(file.name);
+
+          fitCanvasToImage();
+          setMaxCropForCurrentRatio();
+
+          emptyMessage.style.display = "none";
+          canvas.style.display = "block";
+
+          fileInfo.innerHTML = `
+            <div><strong>선택된 파일:</strong> ${file.name}</div>
+            <div><strong>원본 크기:</strong> ${imageNaturalWidth} × ${imageNaturalHeight}px</div>
+            <div><strong>파일 형식:</strong> ${file.type || "알 수 없음"}</div>
+            <div><strong>파일 크기:</strong> ${formatFileSize(file.size)}</div>
+          `;
+
+          previewBox.innerHTML = "미리보기 버튼을 누르면 자른 이미지가 표시됩니다.";
+
+          setButtonsDisabled(false);
+          draw();
+
+          setStatus("이미지 업로드 완료! 비율을 선택하고 자르기 박스를 조절하세요.", "success");
+        };
+
+        newImage.onerror = function () {
+          setStatus("이미지를 불러오지 못했습니다. 다른 파일로 다시 시도해 주세요.", "error");
+        };
+
+        newImage.src = event.target.result;
+      };
+
+      reader.onerror = function () {
+        setStatus("파일을 읽는 중 오류가 발생했습니다. 다시 시도해 주세요.", "error");
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function clearAll() {
+      image = null;
+      imageNaturalWidth = 0;
+      imageNaturalHeight = 0;
+      displayScale = 1;
+      currentFileName = "cropped-image";
+      dragMode = null;
+      imageInput.value = "";
+
+      canvas.style.display = "none";
+      emptyMessage.style.display = "block";
+
+      fileInfo.innerHTML = "<strong>선택된 파일:</strong> 없음";
+      previewBox.innerHTML = "미리보기 버튼을 누르면 자른 이미지가 표시됩니다.";
+
+      activeRatio = "free";
+
+      ratioButtons.forEach(function (button) {
+        button.classList.remove("active");
+        if (button.dataset.ratio === "free") {
+          button.classList.add("active");
+        }
+      });
+
+      setButtonsDisabled(true);
+      setStatus("초기화되었습니다. 새 이미지를 선택해 주세요.");
+    }
+
+    function makeCroppedCanvas() {
+      if (!image) {
+        setStatus("먼저 이미지를 업로드해 주세요.", "error");
+        return null;
+      }
+
+      const sourceX = Math.round(crop.x / displayScale);
+      const sourceY = Math.round(crop.y / displayScale);
+      const sourceW = Math.round(crop.w / displayScale);
+      const sourceH = Math.round(crop.h / displayScale);
+
+      const resultCanvas = document.createElement("canvas");
+      resultCanvas.width = sourceW;
+      resultCanvas.height = sourceH;
+
+      const resultCtx = resultCanvas.getContext("2d");
+
+      if (outputType.value === "image/jpeg") {
+        resultCtx.fillStyle = "#ffffff";
+        resultCtx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+      }
+
+      resultCtx.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceW,
+        sourceH,
+        0,
+        0,
+        sourceW,
+        sourceH
+      );
+
+      return resultCanvas;
+    }
+
+    function makePreview() {
+      const resultCanvas = makeCroppedCanvas();
+      if (!resultCanvas) return;
+
+      const dataUrl = resultCanvas.toDataURL(outputType.value, 0.92);
+      const previewImage = document.createElement("img");
+      previewImage.src = dataUrl;
+      previewImage.alt = "자른 이미지 미리보기";
+
+      previewBox.innerHTML = "";
+      previewBox.appendChild(previewImage);
+
+      setStatus("미리보기를 만들었습니다.", "success");
+    }
+
+    function downloadCroppedImage() {
+      const resultCanvas = makeCroppedCanvas();
+      if (!resultCanvas) return;
+
+      const type = outputType.value;
+      const extension = type === "image/jpeg" ? "jpg" : "png";
+
+      resultCanvas.toBlob(
+        function (blob) {
+          if (!blob) {
+            setStatus("다운로드 파일을 만들지 못했습니다.", "error");
+            return;
+          }
+
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+
+          link.href = url;
+          link.download = currentFileName + "-cropped." + extension;
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          URL.revokeObjectURL(url);
+
+          setStatus("자른 이미지 다운로드가 완료되었습니다.", "success");
+        },
+        type,
+        0.92
+      );
+    }
+
+    imageInput.addEventListener("change", function (event) {
+      loadImageFile(event.target.files[0]);
+    });
+
+    ratioButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (!image) {
+          setStatus("먼저 이미지를 업로드해 주세요.", "error");
+          return;
+        }
+
+        ratioButtons.forEach(function (btn) {
+          btn.classList.remove("active");
+        });
+
+        button.classList.add("active");
+        activeRatio = button.dataset.ratio;
+
+        setMaxCropForCurrentRatio();
+        draw();
+
+        if (activeRatio === "free") {
+          setStatus("자유 비율로 변경되었습니다. 모서리를 잡고 원하는 크기로 조절하세요.", "success");
+        } else {
+          setStatus(button.textContent.trim() + " 비율로 변경되었습니다.", "success");
+        }
+      });
+    });
+
+    centerBtn.addEventListener("click", function () {
+      if (!image) return;
+      centerCrop();
+      setStatus("자르기 박스를 가운데로 맞췄습니다.", "success");
+    });
+
+    maxBtn.addEventListener("click", function () {
+      if (!image) return;
+      setMaxCropForCurrentRatio();
+      draw();
+      setStatus("현재 비율에 맞춰 자르기 박스를 최대 크기로 조절했습니다.", "success");
+    });
+
+    resetBtn.addEventListener("click", function () {
+      if (!image) return;
+      setMaxCropForCurrentRatio();
+      previewBox.innerHTML = "미리보기 버튼을 누르면 자른 이미지가 표시됩니다.";
+      draw();
+      setStatus("자르기 영역을 처음 상태로 되돌렸습니다.", "success");
+    });
+
+    clearBtn.addEventListener("click", function () {
+      const ok = confirm("현재 작업 내용을 모두 초기화할까요?");
+      if (ok) {
+        clearAll();
+      }
+    });
+
+    previewBtn.addEventListener("click", makePreview);
+    downloadBtn.addEventListener("click", downloadCroppedImage);
+
+    canvas.addEventListener("mousedown", startDrag);
+    window.addEventListener("mousemove", moveDrag);
+    window.addEventListener("mouseup", endDrag);
+    canvas.addEventListener("mousemove", updateCursor);
+
+    canvas.addEventListener("touchstart", startDrag, { passive: false });
+    window.addEventListener("touchmove", moveDrag, { passive: false });
+    window.addEventListener("touchend", endDrag);
+
+    uploadArea.addEventListener("dragover", function (event) {
+      event.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", function () {
+      uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", function (event) {
+      event.preventDefault();
+      uploadArea.classList.remove("dragover");
+
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        loadImageFile(event.dataTransfer.files[0]);
+      }
+    });
+
+    setButtonsDisabled(true);
+  </script>
+</body>
+</html>

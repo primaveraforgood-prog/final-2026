@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF 페이지 편집기</title>
+
+  <!-- PDF.js: PDF 미리보기 렌더링용 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- pdf-lib: 새 PDF 생성 및 다운로드용 -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <!-- SortableJS: 드래그 앤 드롭 정렬용 -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      color: white;
+      padding: 36px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 15px;
+      opacity: 0.9;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 28px auto;
+      padding: 0 18px 40px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      margin-bottom: 22px;
+    }
+
+    .upload-area {
+      border: 2px dashed #93c5fd;
+      border-radius: 16px;
+      background: #eff6ff;
+      padding: 26px;
+      text-align: center;
+      transition: 0.2s;
+    }
+
+    .upload-area.dragover {
+      background: #dbeafe;
+      border-color: #2563eb;
+    }
+
+    .upload-area h2 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      color: #1e3a8a;
+    }
+
+    .upload-area p {
+      margin: 7px 0;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-label {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 12px 18px;
+      background: #2563eb;
+      color: white;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .file-label:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .badge {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 12px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 15px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: #16a34a;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #15803d;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    .status {
+      margin-top: 14px;
+      min-height: 24px;
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .status.error {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+
+    .status.success {
+      color: #15803d;
+      font-weight: 700;
+    }
+
+    .guide {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .guide-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .guide-item strong {
+      display: block;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .page-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .page-section-title h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #111827;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .page-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 16px;
+      min-height: 160px;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      background: #f8fafc;
+      padding: 42px 18px;
+      text-align: center;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .page-card {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+      transition: 0.2s;
+    }
+
+    .page-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    .page-card.sortable-ghost {
+      opacity: 0.45;
+    }
+
+    .page-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+
+    .order-label {
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: #64748b;
+      font-size: 18px;
+      user-select: none;
+      padding: 2px 6px;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .thumb-wrap {
+      width: 100%;
+      height: 210px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .thumb-wrap img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+      background: white;
+    }
+
+    .page-info {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #475569;
+      word-break: break-all;
+      min-height: 50px;
+    }
+
+    .page-info strong {
+      color: #0f172a;
+    }
+
+    .delete-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .delete-btn:hover {
+      background: #fecaca;
+    }
+
+    .loading {
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.45; }
+      50% { opacity: 1; }
+      100% { opacity: 0.45; }
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 760px) {
+      header h1 {
+        font-size: 25px;
+      }
+
+      .guide {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+
+      .buttons {
+        width: 100%;
+      }
+
+      .buttons button {
+        flex: 1;
+      }
+
+      .page-list {
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+      }
+
+      .thumb-wrap {
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PDF 페이지 편집기</h1>
+    <p>PDF 파일을 업로드한 뒤, 필요 없는 페이지는 삭제하고 순서를 바꿔 새 PDF로 다운로드하세요.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div id="uploadArea" class="upload-area">
+        <h2>PDF 파일 업로드</h2>
+        <p>하나 또는 여러 개의 PDF 파일을 선택할 수 있습니다.</p>
+        <p>새 파일을 선택하면 기존 작업 내용은 초기화됩니다.</p>
+
+        <label for="pdfInput" class="file-label">PDF 파일 선택하기</label>
+        <input id="pdfInput" type="file" accept="application/pdf,.pdf" multiple />
+      </div>
+
+      <div class="toolbar">
+        <div class="stats">
+          <span class="badge">업로드한 PDF: <strong id="fileCount">0</strong>개</span>
+          <span class="badge">현재 페이지: <strong id="pageCount">0</strong>장</span>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="btn-secondary" id="clearBtn">초기화</button>
+          <button type="button" class="btn-primary" id="downloadBtn">새 PDF 다운로드</button>
+        </div>
+      </div>
+
+      <div id="status" class="status">PDF 파일을 선택하면 페이지 미리보기가 표시됩니다.</div>
+
+      <div class="guide">
+        <div class="guide-item">
+          <strong>1단계</strong>
+          PDF 파일을 하나 이상 업로드합니다.
+        </div>
+        <div class="guide-item">
+          <strong>2단계</strong>
+          필요 없는 페이지는 삭제 버튼을 누릅니다.
+        </div>
+        <div class="guide-item">
+          <strong>3단계</strong>
+          페이지 카드를 드래그하여 순서를 바꿉니다.
+        </div>
+        <div class="guide-item">
+          <strong>4단계</strong>
+          새 PDF 다운로드 버튼을 눌러 저장합니다.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="page-section-title">
+        <h2>페이지 목록</h2>
+        <span class="hint">카드 오른쪽 위의 손잡이(☰)를 잡고 움직이면 순서를 바꿀 수 있습니다.</span>
+      </div>
+
+      <div id="pageList" class="page-list">
+        <div class="empty">
+          아직 업로드된 PDF 페이지가 없습니다.<br />
+          위의 <strong>PDF 파일 선택하기</strong> 버튼을 눌러 시작하세요.
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      브라우저에서만 작동하는 단일 HTML PDF 편집 앱
+    </footer>
+  </main>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const pdfInput = document.getElementById("pdfInput");
+    const uploadArea = document.getElementById("uploadArea");
+    const pageList = document.getElementById("pageList");
+    const statusBox = document.getElementById("status");
+    const fileCountEl = document.getElementById("fileCount");
+    const pageCountEl = document.getElementById("pageCount");
+    const clearBtn = document.getElementById("clearBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let sourceFiles = [];
+    let pageItems = [];
+    let sortable = null;
+
+    function makeId(prefix) {
+      return prefix + "-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function setStatus(message, type) {
+      statusBox.textContent = message;
+      statusBox.className = "status";
+
+      if (type === "error") {
+        statusBox.classList.add("error");
+      }
+
+      if (type === "success") {
+        statusBox.classList.add("success");
+      }
+    }
+
+    function updateStats() {
+      fileCountEl.textContent = sourceFiles.length;
+      pageCountEl.textContent = pageItems.length;
+      updateOrderLabels();
+    }
+
+    function updateOrderLabels() {
+      const cards = pageList.querySelectorAll(".page-card");
+      cards.forEach((card, index) => {
+        const label = card.querySelector(".order-label");
+        if (label) {
+          label.textContent = "순서 " + (index + 1);
+        }
+      });
+    }
+
+    function clearAll() {
+      sourceFiles = [];
+      pageItems = [];
+      pdfInput.value = "";
+      pageList.innerHTML = `
+        <div class="empty">
+          아직 업로드된 PDF 페이지가 없습니다.<br />
+          위의 <strong>PDF 파일 선택하기</strong> 버튼을 눌러 시작하세요.
+        </div>
+      `;
+      updateStats();
+      setStatus("초기화되었습니다. 새 PDF 파일을 선택해 주세요.");
+    }
+
+    function syncPageItemsFromDOM() {
+      const cards = Array.from(pageList.querySelectorAll(".page-card"));
+      pageItems = cards
+        .map((card) => pageItems.find((item) => item.id === card.dataset.pageId))
+        .filter(Boolean);
+
+      updateStats();
+    }
+
+    function initializeSortable() {
+      if (sortable) {
+        sortable.destroy();
+      }
+
+      sortable = new Sortable(pageList, {
+        animation: 160,
+        handle: ".drag-handle",
+        ghostClass: "sortable-ghost",
+        onEnd: function () {
+          syncPageItemsFromDOM();
+          setStatus("페이지 순서가 변경되었습니다. 다운로드하면 변경된 순서가 반영됩니다.", "success");
+        }
+      });
+    }
+
+    function createPageCard(item) {
+      const card = document.createElement("div");
+      card.className = "page-card";
+      card.dataset.pageId = item.id;
+
+      const top = document.createElement("div");
+      top.className = "page-top";
+
+      const orderLabel = document.createElement("span");
+      orderLabel.className = "order-label";
+      orderLabel.textContent = "순서";
+
+      const handle = document.createElement("span");
+      handle.className = "drag-handle";
+      handle.title = "드래그해서 순서 변경";
+      handle.textContent = "☰";
+
+      top.appendChild(orderLabel);
+      top.appendChild(handle);
+
+      const thumbWrap = document.createElement("div");
+      thumbWrap.className = "thumb-wrap";
+
+      const img = document.createElement("img");
+      img.src = item.thumbnailUrl;
+      img.alt = item.fileName + " " + item.originalPageNumber + "페이지 미리보기";
+      thumbWrap.appendChild(img);
+
+      const info = document.createElement("div");
+      info.className = "page-info";
+
+      const fileText = document.createElement("div");
+      fileText.innerHTML = "<strong>파일</strong>: ";
+      const fileNameSpan = document.createElement("span");
+      fileNameSpan.textContent = item.fileName;
+      fileText.appendChild(fileNameSpan);
+
+      const pageText = document.createElement("div");
+      pageText.innerHTML = "<strong>원본 페이지</strong>: ";
+      const pageNumSpan = document.createElement("span");
+      pageNumSpan.textContent = item.originalPageNumber + " / " + item.totalPages;
+      pageText.appendChild(pageNumSpan);
+
+      info.appendChild(fileText);
+      info.appendChild(pageText);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "delete-btn";
+      deleteButton.textContent = "이 페이지 삭제";
+      deleteButton.addEventListener("click", function () {
+        deletePage(item.id);
+      });
+
+      card.appendChild(top);
+      card.appendChild(thumbWrap);
+      card.appendChild(info);
+      card.appendChild(deleteButton);
+
+      return card;
+    }
+
+    function deletePage(pageId) {
+      const card = pageList.querySelector(`[data-page-id="${pageId}"]`);
+      if (card) {
+        card.remove();
+      }
+
+      pageItems = pageItems.filter((item) => item.id !== pageId);
+
+      if (pageItems.length === 0) {
+        pageList.innerHTML = `
+          <div class="empty">
+            모든 페이지가 삭제되었습니다.<br />
+            다시 PDF를 업로드하거나 초기화 후 새로 시작하세요.
+          </div>
+        `;
+      }
+
+      updateStats();
+      setStatus("선택한 페이지가 삭제되었습니다.", "success");
+    }
+
+    async function renderPageThumbnail(pdfDocument, pageNumber) {
+      const page = await pdfDocument.getPage(pageNumber);
+      const viewportForSize = page.getViewport({ scale: 1 });
+      const targetWidth = 150;
+      const scale = targetWidth / viewportForSize.width;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      const outputScale = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = Math.floor(viewport.width) + "px";
+      canvas.style.height = Math.floor(viewport.height) + "px";
+
+      const transform = outputScale !== 1
+        ? [outputScale, 0, 0, outputScale, 0, 0]
+        : null;
+
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+        transform: transform
+      }).promise;
+
+      return canvas.toDataURL("image/jpeg", 0.88);
+    }
+
+    async function loadPdfFiles(fileList) {
+      const files = Array.from(fileList);
+
+      if (files.length === 0) {
+        return;
+      }
+
+      const invalidFiles = files.filter((file) => {
+        const lowerName = file.name.toLowerCase();
+        return file.type !== "application/pdf" && !lowerName.endsWith(".pdf");
+      });
+
+      if (invalidFiles.length > 0) {
+        setStatus("PDF 파일만 업로드할 수 있습니다. 파일 형식을 확인해 주세요.", "error");
+        return;
+      }
+
+      sourceFiles = [];
+      pageItems = [];
+      pageList.innerHTML = "";
+      setStatus("PDF를 불러오는 중입니다. 페이지 수가 많으면 조금 걸릴 수 있습니다.");
+
+      try {
+        let totalLoadedPages = 0;
+
+        for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+          const file = files[fileIndex];
+          const sourceId = makeId("source");
+          const arrayBuffer = await file.arrayBuffer();
+
+          setStatus(`PDF 분석 중: ${file.name}`);
+
+          const pdfForPreview = await pdfjsLib.getDocument({
+            data: arrayBuffer.slice(0)
+          }).promise;
+
+          const pageCount = pdfForPreview.numPages;
+
+          sourceFiles.push({
+            id: sourceId,
+            name: file.name,
+            arrayBuffer: arrayBuffer,
+            pageCount: pageCount
+          });
+
+          for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+            setStatus(`미리보기 생성 중: ${file.name} (${pageNumber}/${pageCount}페이지)`);
+
+            const thumbnailUrl = await renderPageThumbnail(pdfForPreview, pageNumber);
+
+            const item = {
+              id: makeId("page"),
+              sourceId: sourceId,
+              fileName: file.name,
+              pageIndex: pageNumber - 1,
+              originalPageNumber: pageNumber,
+              totalPages: pageCount,
+              thumbnailUrl: thumbnailUrl
+            };
+
+            pageItems.push(item);
+            pageList.appendChild(createPageCard(item));
+            totalLoadedPages++;
+            updateStats();
+          }
+        }
+
+        initializeSortable();
+        updateStats();
+
+        setStatus(
+          `업로드 완료: PDF ${sourceFiles.length}개, 총 ${totalLoadedPages}페이지를 불러왔습니다.`,
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+        setStatus(
+          "PDF를 불러오는 중 오류가 발생했습니다. 암호가 걸린 PDF이거나 손상된 파일일 수 있습니다.",
+          "error"
+        );
+      }
+    }
+
+    async function downloadEditedPdf() {
+      syncPageItemsFromDOM();
+
+      if (pageItems.length === 0) {
+        setStatus("다운로드할 페이지가 없습니다. PDF를 업로드하거나 페이지를 남겨 주세요.", "error");
+        return;
+      }
+
+      try {
+        setStatus("새 PDF를 만드는 중입니다. 잠시만 기다려 주세요.");
+
+        const { PDFDocument } = PDFLib;
+        const newPdf = await PDFDocument.create();
+        const loadedPdfMap = new Map();
+
+        for (let i = 0; i < pageItems.length; i++) {
+          const item = pageItems[i];
+          const source = sourceFiles.find((file) => file.id === item.sourceId);
+
+          if (!source) {
+            throw new Error("원본 PDF 파일 정보를 찾을 수 없습니다.");
+          }
+
+          let sourcePdf = loadedPdfMap.get(source.id);
+
+          if (!sourcePdf) {
+            sourcePdf = await PDFDocument.load(source.arrayBuffer.slice(0));
+            loadedPdfMap.set(source.id, sourcePdf);
+          }
+
+          const copiedPages = await newPdf.copyPages(sourcePdf, [item.pageIndex]);
+          newPdf.addPage(copiedPages[0]);
+
+          setStatus(`새 PDF 생성 중: ${i + 1}/${pageItems.length}페이지 처리 완료`);
+        }
+
+        const pdfBytes = await newPdf.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = url;
+        downloadLink.download = "edited-pdf.pdf";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        URL.revokeObjectURL(url);
+
+        setStatus("새 PDF 다운로드가 완료되었습니다.", "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(
+          "새 PDF를 만드는 중 오류가 발생했습니다. 다시 시도하거나 다른 PDF 파일을 사용해 주세요.",
+          "error"
+        );
+      }
+    }
+
+    pdfInput.addEventListener("change", function (event) {
+      loadPdfFiles(event.target.files);
+    });
+
+    clearBtn.addEventListener("click", function () {
+      const confirmClear = confirm("현재 작업 내용을 모두 초기화할까요?");
+      if (confirmClear) {
+        clearAll();
+      }
+    });
+
+    downloadBtn.addEventListener("click", function () {
+      downloadEditedPdf();
+    });
+
+    uploadArea.addEventListener("dragover", function (event) {
+      event.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", function () {
+      uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", function (event) {
+      event.preventDefault();
+      uploadArea.classList.remove("dragover");
+
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        pdfInput.files = event.dataTransfer.files;
+        loadPdfFiles(event.dataTransfer.files);
+      }
+    });
+
+    updateStats();
+  </script>
+</body>
+</html>
